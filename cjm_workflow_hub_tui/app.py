@@ -390,6 +390,12 @@ class HubApp(App):
             self._paint()
             return
         cmd = [exe]
+        if self.graph_db_path:
+            # Explicit-db-path guardrail (027bbe56): the hub knows the
+            # effective path — every launched stage TUI opens the SAME graph,
+            # never a convenience re-resolve (the correction TUI refuses
+            # loudly without it when no config-store record exists).
+            cmd += ["--graph-db-path", str(self.graph_db_path)]
         if which == "correction":
             if not row or row["kind"] != "source":
                 self.error = "focus a source row to open it in the correction TUI"
