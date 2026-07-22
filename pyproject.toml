@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cjm-workflow-hub-tui"
+version = "0.0.1"
+description = "Workspace front door for the transcription workflow: collection-grouped source browser with stage-at-a-glance pipeline status (transcribed / decomposed / corrected), launch into the stage TUIs, and the collection curation surface (confirm / rename / refile / order / merge — rename onto an existing title IS merge, by title identity). Born on-graph."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [{name = "Christian J. Mills", email = "9126128+cj-mills@users.noreply.github.com"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    'cjm-transcription-core>=0.0.6',
+    'cjm-transcript-correction-core>=0.0.4',
+    'cjm-transcript-graph-schema>=0.0.8',
+    'cjm-context-graph-layer>=0.0.11',
+    'cjm-context-graph-primitives>=0.0.15',
+    'cjm-substrate-tui-kit>=0.0.1',
+    'textual',
+]
+
+[project.scripts]
+cjm-workflow-hub = "cjm_workflow_hub_tui.cli:main"
+
+[project.urls]
+Repository = "https://github.com/cj-mills/cjm-workflow-hub-tui"
+
+[tool.setuptools.packages.find]
+include = ["cjm_workflow_hub_tui*"]
