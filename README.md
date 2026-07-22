@@ -31,6 +31,7 @@ _No purpose recorded on-graph yet — author it with_ `assert e77a7cd6-290b-55c9
 - `list_sources` _function_ — Enumerate the graph's Source nodes (CARRIED COPY, see `open_stack`).
 - `load_hub_data` _function_ — One reload: collections + membership + order + sources + status.
 - `open_stack` _function_ — Bootstrap the graph capability stack, resolving the db path.
+- `resolve_stage_tui` _function_ — Resolve a stage TUI's executable across the CORE-ENV pattern.
 - `stage_glance` _function_ — Stage-at-a-glance for one source row (pure; spans are the app's job).
 
 ## Dependencies

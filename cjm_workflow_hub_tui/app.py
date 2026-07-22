@@ -22,7 +22,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Input, Static
 
-from .spine import build_rows, HubData, load_hub_data, open_stack, stage_glance
+from .spine import build_rows, HubData, load_hub_data, open_stack, resolve_stage_tui, stage_glance
 
 
 class HubApp(App):
@@ -64,11 +64,7 @@ class HubApp(App):
         Binding("q", "quit_app", "quit"),
     ]
 
-    LAUNCH_COMMANDS = {
-        "transcription": ["cjm-transcription-tui"],
-        "decomp": ["cjm-transcript-decomp-tui"],
-        "correction": ["cjm-transcript-correction-tui", "--source"],  # + source id
-    }
+
 
     def __init__(self, manifests_dir: str,                    # Capability manifests directory
                  *, graph_db_path: Optional[str] = None,      # Explicit db (None = workspace answers)
@@ -116,12 +112,18 @@ class HubApp(App):
             self._paint()
 
     async def _reload(self) -> None:
+        """Reload everything off the graph; failures paint, never crash the
+        app (a dead worker after a long child-TUI session lands here — R
+        retries)."""
         self.busy = "loading…"
         self._paint()
-        self.data = await load_hub_data(self.queue, self.graph_capability)
-        self.rows = build_rows(self.data)
-        self.cursor = max(0, min(self.cursor, len(self.rows) - 1))
-        self.selected &= {r["id"] for r in self.rows if r["kind"] == "source"}
+        try:
+            self.data = await load_hub_data(self.queue, self.graph_capability)
+            self.rows = build_rows(self.data)
+            self.cursor = max(0, min(self.cursor, len(self.rows) - 1))
+            self.selected &= {r["id"] for r in self.rows if r["kind"] == "source"}
+        except Exception as e:
+            self.error = f"reload failed: {e} (R retries)"
         self.busy = None
         self._paint()
 
@@ -373,27 +375,40 @@ class HubApp(App):
         await self._reload()
 
     async def action_launch(self, which: str) -> None:
+        """Open a stage TUI (1/2/3) — resolved across the core envs, and
+        NOTHING may raise inside the suspend block: Textual's App.suspend has
+        no try/finally around its yield, so an escaping exception leaves the
+        app suspended forever — alive, blind, and deaf (the 2026-07-22 launch
+        wedge: a FileNotFoundError for a sibling-env TUI froze the terminal)."""
         row = self._focused()
         if self.mode != "browse" or self.editing or self.busy:
             return
-        cmd = list(self.LAUNCH_COMMANDS[which])
+        exe = resolve_stage_tui(which)
+        if exe is None:
+            self.error = (f"{which} TUI not found on PATH or in its core env "
+                          f"(pip install it there; see resolve_stage_tui)")
+            self._paint()
+            return
+        cmd = [exe]
         if which == "correction":
             if not row or row["kind"] != "source":
                 self.error = "focus a source row to open it in the correction TUI"
                 self._paint()
                 return
-            cmd.append(row["id"])
-        try:
-            with self.suspend():
-                subprocess.run(cmd)
-        except FileNotFoundError:
-            self.error = f"{cmd[0]} not installed in this environment"
+            cmd += ["--source", row["id"]]
+        failure: Optional[BaseException] = None
+        rc: Optional[int] = None
+        with self.suspend():
+            try:
+                rc = subprocess.run(cmd).returncode
+            except BaseException as e:  # NOTHING escapes a suspended app
+                failure = e
+        if failure is not None:
+            self.error = f"launch failed: {failure}"
             self._paint()
             return
-        except Exception as e:
-            self.error = f"launch failed: {e}"
-            self._paint()
-            return
+        if rc:
+            self.error = f"{which} TUI exited with rc={rc}"
         await self._reload()
 
     def action_cancel(self) -> None:

@@ -7,6 +7,8 @@ cjm_transcript_correction_tui.spine's rungs (N=2, decomp-TUI discovery.py
 precedent: kept near-verbatim so the contract cannot fork before the c3c21f99
 shared-scaffolding home decision moves BOTH)."""
 
+import shutil
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -210,3 +212,32 @@ def stage_glance(
     if counts.get("marks"):
         bits.append(f"{counts['marks']}⚑")
     return " ".join(bits)
+
+
+def resolve_stage_tui(
+    which: str,                        # "transcription" | "decomp" | "correction"
+    envs_root: Optional[str] = None,   # Conda envs dir override (tests; None = derive)
+) -> Optional[str]:  # Absolute executable path, or None = not installed anywhere we know
+    """Resolve a stage TUI's executable across the CORE-ENV pattern.
+
+    The workflow TUIs live in their own core's conda env (env-truth register:
+    correction TUI -> cjm-transcript-correction-core env, and the pattern
+    applies to all of them; env name = core repo name) — so a bare command name
+    only resolves for whichever TUI shares the hub's env. Order: PATH first
+    (an env that installs everything wins), then the SIBLING env's bin, with
+    the envs root derived from the hub's own interpreter (sys.prefix's parent)
+    — never a hardcoded dev-machine path (6dfe00e9 discipline). None = the caller
+    paints a loud error NAMING the missing env, and never suspends (an
+    exception inside App.suspend never resumes application mode — the
+    2026-07-22 launch-wedge root cause)."""
+    cmd, env_name = {
+        "transcription": ("cjm-transcription-tui", "cjm-transcription-core"),
+        "decomp": ("cjm-transcript-decomp-tui", "cjm-transcript-decomp-core"),
+        "correction": ("cjm-transcript-correction-tui", "cjm-transcript-correction-core"),
+    }[which]
+    found = shutil.which(cmd)
+    if found:
+        return found
+    root = Path(envs_root) if envs_root else Path(sys.prefix).parent
+    cand = root / env_name / "bin" / cmd
+    return str(cand) if cand.exists() else None

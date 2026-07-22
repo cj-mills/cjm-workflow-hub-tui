@@ -3,7 +3,7 @@ and the stage-at-a-glance rendering (paint-path strings verify by pilot probe,
 per the standing TUI craft)."""
 
 from cjm_workflow_hub_tui.spine import (HubData, build_rows, join_pipeline_status,
-                                        stage_glance)
+                                        resolve_stage_tui, stage_glance)
 
 
 def test_join_pipeline_status():
@@ -64,3 +64,23 @@ def test_stage_glance():
                          "corrections": 3, "marks": 1})
     assert full == "TDC 214segs 3corr 1⚑"
     assert stage_glance({"fine_segs": 7}) == "tDc 7segs"
+
+
+def test_resolve_stage_tui(tmp_path, monkeypatch):
+    # not on PATH, not in a sibling env -> None (caller paints, NEVER suspends)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    assert resolve_stage_tui("decomp", envs_root=str(tmp_path)) is None
+    # the core-env pattern: env name = core repo name, executable under bin/
+    exe = tmp_path / "cjm-transcript-decomp-core" / "bin" / "cjm-transcript-decomp-tui"
+    exe.parent.mkdir(parents=True)
+    exe.write_text("#!/bin/sh\n")
+    exe.chmod(0o755)
+    assert resolve_stage_tui("decomp", envs_root=str(tmp_path)) == str(exe)
+    # PATH wins when present (an everything-in-one env install)
+    onpath = tmp_path / "pathbin"
+    onpath.mkdir()
+    p = onpath / "cjm-transcript-decomp-tui"
+    p.write_text("#!/bin/sh\n")
+    p.chmod(0o755)
+    monkeypatch.setenv("PATH", str(onpath))
+    assert resolve_stage_tui("decomp", envs_root=str(tmp_path)) == str(p)
