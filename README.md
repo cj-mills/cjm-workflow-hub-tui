@@ -2,13 +2,14 @@
 
 <!-- generated from the context graph by `cjm-context-graph readme` — do not edit by hand; edit the graph (the urge to hand-edit = move it on-graph) -->
 
-_No purpose recorded on-graph yet — author it with_ `assert e77a7cd6-290b-55c9-a3b0-f782e7ab0da1 purpose "…"` _(or by the repo's entity key)._
+The transcription workspace's front door — one keyboard surface answering 'what is in this workspace and where is each source in the pipeline'. Paints the graph spine's grouped rows (collections with flagged proposals, per-source stage-at-a-glance status across transcription -> decomposition -> correction), launches the stage TUIs on a source (each resolved into its own core's conda env, via Textual suspend), and drives the curation vocabulary: confirm, file/refile, rename-or-merge, and collection ordering. Every curation commit rides the graph db's sidecar journal (DEC ccbab9f5) so the workspace stays rebuildable; batch runs hand off to the decomp core with the confirmed plan's flags (including --sentence-split). Hub v0 shipped under DEC 66d35baa / e5849229; hub-drive findings shape v0.1.
 
 ## Modules
 
-- **`cjm_workflow_hub_tui.app`**
-- **`cjm_workflow_hub_tui.cli`**
-- **`cjm_workflow_hub_tui.spine`**
+- **`cjm_workflow_hub_tui`**
+- **`cjm_workflow_hub_tui.app`** — The workspace front door (hub v0, e5849229): one keyboard surface answering
+- **`cjm_workflow_hub_tui.cli`** — The console-script driver (cjm-workflow-hub): resolve the workspace, export
+- **`cjm_workflow_hub_tui.spine`** — The hub's spine: pure/graph logic below the paint path (sources.py precedent
 
 ## API
 
